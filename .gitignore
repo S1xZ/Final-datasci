@@ -1,2 +1,13 @@
 # vscode stuff
 .vscode
+
+
+# airflow stuff
+*/logs
+*/data
+*/plugins
+*/airflow.cfg
+**/__pycache__
+
+# mlflow
+

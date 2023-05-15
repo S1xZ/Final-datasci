@@ -1,79 +1,86 @@
-import os
-from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.utils.dates import days_ago
-from datetime import timedelta
+from datetime import datetime, timedelta
 import pandas as pd
 import requests
+import json
+import os
 
-# For PythonOperator
-def get_data_from_request():
-    # Check if data exists
-    if os.path.exists('../data/current.csv'):
-        # Download data
-        url = 'https://publicapi.traffy.in.th/share/teamchadchart/download'
-        r = requests.get(url, allow_redirects=True)
-        open('../data/current.csv', 'wb').write(r.content)
-        # Create last update
-        last_update = pd.DataFrame({'last_update': [pd.Timestamp.now()]})
-        last_update.to_csv('../data/last_update.csv', index=False)
-    else:
-        url = 'https://publicapi.traffy.in.th/share/teamchadchart/search'
-        # Read last update
-        last_update = pd.read_csv('../data/last_update.csv')
-        params = {
-            'limit': 25000,
-            'start_date': pd.Timestamp(last_update['last_update'][0]).strftime('%Y-%m-%d'),
-            'end_date': pd.Timestamp.now().strftime('%Y-%m-%d')
-        }
-        r = requests.get(url, params=params, allow_redirects=True)
-        open('../data/current.csv', 'wb').write(r.content)
-        # Update last update
-        last_update = pd.DataFrame({'last_update': [pd.Timestamp.now()]})
-        last_update.to_csv('../data/last_update.csv', index=False)
-
-
-def clean_data():
-    
-
-
+from airflow import DAG
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.python_operator import PythonOperator
 
 default_args = {
-    'owner': 'datath',
+    'owner': 'airflow',
     'depends_on_past': False,
-    'catchup': False,
-    'start_date': days_ago(0),
-    'email': ['airflow@example.com'],
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    # set start time to 23.59 of everyday
+    'start_date': datetime(2023, 5, 14, 23, 59),
+    'retries': 0,
 }
 
 dag = DAG(
-    'traffy_fondue_to_Redshift',
+    'teamchadchart_dag',
     default_args=default_args,
-    description='Pipeline for getting data from Traffy Fondue and inserting it to Redshift',
-    schedule_interval=timedelta(days=1),
+    catchup=False,
+    schedule_interval='@daily',
 )
 
-t1 = PythonOperator(
-    task_id="get_data_from_request",
-    python_callable=get_data_from_request,
-    dag=dag,
-)
 
-t2 = PythonOperator(
-    task_id="clean_data",
-    python_callable=clean_data,
-    dag=dag,
-)
+def get_data():
+    """
+    Fetch data from API and save as CSV
+    """
+    # check if data.csv exists
+    if os.path.exists('./data/data.csv'):
+        # get data from API with start_date=today and limit=25000
+        start_date = datetime.now().strftime('%Y-%m-%d')
+        url = f'https://publicapi.traffy.in.th/share/teamchadchart/download?limit=25000&start_date={start_date}'
+        r = requests.get(url, allow_redirects=True)
+    else:
+        # Download data
+        url = 'https://publicapi.traffy.in.th/dump-csv-chadchart/bangkok_traffy.csv'
+        r = requests.get(url, allow_redirects=True)
 
-t3 = PythonOperator(
-    task_id="insert_data_to_db",
-    python_callable=insert_data_to_db,
-    dag=dag,
-)
+    open('./data/data.csv', 'wb').write(r.content)
 
-t1 >> t2
+
+def clean_data():
+    """
+    Load data from CSV to Pandas DataFrame, clean it, and save to Redshift
+    """
+
+    redshift_hook = PostgresHook(postgres_conn_id='redshift')
+
+    # load data from CSV to Pandas DataFrame
+    df = pd.read_csv("../data/data.csv")
+
+    # drop empty fields
+    df = df.dropna()
+
+    # split cords column into latitude and longitude
+    df[['latitude', 'longitude']] = pd.DataFrame(
+        df['cords'].tolist(), index=df.index)
+
+    # save cleaned data back to Redshift
+    df.to_sql(
+        'teamchadchart',
+        redshift_hook.get_engine(),
+        if_exists='replace',
+        index=False
+    )
+
+
+with dag:
+    # define tasks
+    get_data_task = PythonOperator(
+        task_id='get_data',
+        python_callable=get_data,
+        dag=dag
+    )
+
+    clean_data_task = PythonOperator(
+        task_id='clean_data',
+        python_callable=clean_data,
+        dag=dag
+    )
+
+    # define task dependencies
+    get_data_task >> clean_data_task
