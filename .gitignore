@@ -1,3 +1,10 @@
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+# vscode stuff
+.vscode
+=======
+>>>>>>> Stashed changes
 # vscode stuff
 .vscode
 
@@ -10,4 +17,9 @@
 **/__pycache__
 
 # mlflow
+<<<<<<< Updated upstream
 
+=======
+*/my-db
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes

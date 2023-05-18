@@ -145,6 +145,19 @@
           retries: 5
         restart: always
 
+      mysql:
+        image: mysql:8.0.33
+        container_name: mysql
+        restart: always
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: traffy
+          MYSQL_USER: traffy
+          MYSQL_PASSWORD: fondue
+        volumes:
+          - ./my-db:/var/lib/mysql
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    
     volumes:
       postgres-db-volume:
-    
+      my-db:
