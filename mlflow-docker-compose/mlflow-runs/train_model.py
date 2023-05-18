@@ -146,27 +146,6 @@ from sklearn.metrics import classification_report
 # Generate predictions for the testing set
 y_pred = rf_best.predict(X_test)
 
-# Accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print("Accuracy:", accuracy)
-
-# Precision
-precision = precision_score(y_test, y_pred)
-print("Precision:", precision)
-
-# Recall
-recall = recall_score(y_test, y_pred)
-print("Recall:", recall)
-
-# F1 Score
-f1 = f1_score(y_test, y_pred)
-print("F1 Score:", f1)
-
-# ROC Curve and AUC
-fpr, tpr, thresholds = roc_curve(y_test, y_pred)
-roc_auc = auc(fpr, tpr)
-print("ROC AUC:", roc_auc)
-
 # Mean Absolute Error
 mae = mean_absolute_error(y_test, y_pred)
 print("Mean Absolute Error:", mae)
@@ -186,4 +165,4 @@ import pandas as pd
 
 # Assume y_true and y_pred are the true and predicted labels, respectively
 df = pd.DataFrame({'true': y_test, 'predicted': y_pred})
-print(df.head())
+print(df.head(15))
