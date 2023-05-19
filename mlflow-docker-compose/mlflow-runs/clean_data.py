@@ -4,34 +4,33 @@ import numpy as np
 import torch
 from sklearn.preprocessing import OneHotEncoder
 import os
-import psycopg2
+import mysql.connector
 
 # Retrieve the connection details from environment variables
-# host = os.environ.get("DB_HOST")
-# port = os.environ.get("DB_PORT")
-# database = os.environ.get("DB_NAME")
-# user = os.environ.get("DB_USER")
-# password = os.environ.get("DB_PASSWORD")
-
-def clean_data(data_path):
+# host = os.getenv("DB_HOST")
+# port = os.getenv("DB_PORT")
+# database = os.getenv("DB_NAME")
+# user = os.getenv("DB_USER")
+# password = os.getenv("DB_PASSWORD")
+host = "127.0.0.1"
+port = "3308"
+database = "traffy"
+user = "traffy"
+password = "fondue"
+def clean_data():
     # Establish a connection to the PostgreSQL database
-    # conn = psycopg2.connect(
-    #     host=host,
-    #     port=port,
-    #     database=database,
-    #     user=user,
-    #     password=password
-    # )
+    print(host, " ", port, " ", database, " ", user, " ", password)
+    conn = mysql.connector.connect( user="traffy", password="fondue", host="localhost", port="3308", database="traffy",auth_plugin='mysql_native_password', use_unicode=True, charset="utf8mb4")
 
-    # sql_query = pd.read_sql_query ('''
-    #                            SELECT
-    #                            *
-    #                            FROM traffy
-    #                            ''', conn)
+    sql_query = pd.read_sql_query ('''
+                               SELECT
+                               *
+                               FROM traffy
+                               ''', conn)
     
     # Load data
-    # Traffyticket = pd.DataFrame(sql_query, columns=['ticket_id', 'type', 'organization', 'comment', 'photo', 'photo_after', 'address', 'subdistrict', 'district', 'province', 'timestamp', 'state', 'star', 'count_reopen', 'last_activity', 'latitude', 'longitude' ])
-    Traffyticket = pd.read_csv(data_path)
+    Traffyticket = pd.DataFrame(sql_query, columns=['ticket_id', 'type', 'organization', 'comment', 'photo', 'photo_after', 'address', 'subdistrict', 'district', 'province', 'timestamp', 'state', 'star', 'count_reopen', 'last_activity', 'latitude', 'longitude' ])
+    # Traffyticket = pd.read_csv(data_path)
 
     print(f"Number of rows: {Traffyticket.shape[0]}")
     # Filter to collect ticket which state is 'เสร็จสิ้น'
@@ -43,8 +42,8 @@ def clean_data(data_path):
     Traffyticket = Traffyticket.dropna()    
     print(f"Number of rows: {Traffyticket.shape[0]}")
 
-    # drop_columns = ['photo', 'photo_after', 'ticket_id', 'address', 'comment', 'state', 'last_activity', 'timestamp', 'star', 'subdistrict', 'organization', 'count_reopen', 'latitude', 'longitude' ]
-    drop_columns = ['photo', 'photo_after', 'ticket_id', 'coords', 'address', 'comment', 'state', 'last_activity', 'timestamp', 'star', 'subdistrict', 'organization', 'count_reopen']
+    drop_columns = ['photo', 'photo_after', 'ticket_id', 'address', 'comment', 'state', 'last_activity', 'timestamp', 'star', 'subdistrict', 'organization', 'count_reopen', 'latitude', 'longitude' ]
+    # drop_columns = ['photo', 'photo_after', 'ticket_id', 'coords', 'address', 'comment', 'state', 'last_activity', 'timestamp', 'star', 'subdistrict', 'organization', 'count_reopen']
 
     # Calculate by convert last_activity and timestamp to datetime and calculate to add the duration column
     Traffyticket['last_activity'] = pd.to_datetime(Traffyticket['last_activity'])
@@ -112,5 +111,5 @@ def clean_data(data_path):
     # print(Traffyticket.info())
 
     # Close the connection
-    # conn.close()
+    conn.close()
     return Traffyticket

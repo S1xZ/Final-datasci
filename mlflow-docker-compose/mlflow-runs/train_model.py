@@ -127,7 +127,6 @@ with mlflow.start_run():
 
     print(mlflow.get_tracking_uri())
     tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-    # model_signature = infer_signature(train_x, train_y)
     print(tracking_url_type_store)
 
     # Model registry does not work with file store
