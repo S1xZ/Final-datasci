@@ -52,7 +52,7 @@ def clean_data():
     df = pd.read_csv("/home/airflow/data/data.csv")
     df = df.dropna()
     # split cords column into latitude and longitude
-    df[['latitude', 'longitude']] = df.coords.str.split(",", expand=True)
+    df[['longitude', 'latitude']] = df.coords.str.split(",", expand=True)
 
     # write file to CSV
     df.to_csv("/home/airflow/data/data_clean.csv", index=False)
