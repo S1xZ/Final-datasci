@@ -4,11 +4,8 @@ import numpy as np
 import torch
 from clean_data import *
 
-# Data path 
-data_path = "Test_Functions/data/bangkok_traffy.csv"
-
 # Load data
-Traffyticket = clean_data(data_path)
+Traffyticket = clean_data()
 
 print("Preparing the data to split train/test .....")
 y = Traffyticket.pop('duration')
@@ -88,6 +85,10 @@ import mlflow.sklearn
 from mlflow.models.signature import infer_signature
 
 import logging
+from datetime import date
+
+# Get the current date
+current_date = date.today().strftime("%Y-%m-%d")
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)                                                                                                                      
@@ -101,7 +102,7 @@ def eval_metrics(actual, pred):
 
 mlflow.set_tracking_uri("http://localhost:5004")
 
-with mlflow.start_run():
+with mlflow.start_run(run_name=f"{model_name}-{current_date}"):
     # Train the model on the best parameters
     rf_best = RandomForestRegressor(**best_params)
     rf_best.fit(X_train, y_train)
@@ -135,12 +136,19 @@ with mlflow.start_run():
         # There are other ways to use the Model Registry, which depends on the use case,
         # please refer to the doc for more information:
         # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-        mlflow.sklearn.log_model(sk_model=rf_best, artifact_path="sklearn-model", signature=signature, registered_model_name=f"{model_name}")
+
+        # Get the URI of the artifacts associated with the current run
+        artifact_uri = mlflow.get_artifact_uri()
+
+        # Append the desired model directory to the artifact URI
+        model_uri = artifact_uri + "/model"
+
+        mlflow.sklearn.log_model(sk_model=rf_best, artifact_path="model", signature=signature, registered_model_name=f"{model_name}")
+        mlflow.register_model(model_uri, f"{model_name}")
     else:
         mlflow.sklearn.log_model(rf_best, "model")
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, mean_absolute_error, mean_squared_error, r2_score
-from sklearn.metrics import classification_report
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # Generate predictions for the testing set
 y_pred = rf_best.predict(X_test)
@@ -156,9 +164,6 @@ print("Mean Squared Error:", mse)
 # R-squared
 r2 = r2_score(y_test, y_pred)
 print("R-squared:", r2)
-
-# Assume y_true and y_pred are the true and predicted labels, respectively
-# print(classification_report(y_test, y_pred))
 
 import pandas as pd
 

@@ -106,7 +106,6 @@ def clean_data():
     # Show the result
     Traffyticket.head(10)
 
-
     print("Already drop NaN value and use oneHotEncoder.")
     # print(Traffyticket.info())
 
